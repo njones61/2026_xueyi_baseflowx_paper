@@ -87,11 +87,11 @@ $^{3}$ \quad Civil, Construction and Environmental Engineering, University of Al
 \section{Introduction}
 \label{sec:introduction}
 
-Streamflow comprises two primary components: quickflow, which responds rapidly to precipitation and snowmelt events, and baseflow, which represents the slower, sustained contribution from groundwater discharge, bank storage, and other delayed sources. Baseflow is critical for sustaining river ecosystems during dry periods, supporting water supply planning, and calibrating hydrological models~\cite{ChapmanMaxwell1996,Eckhardt2005}. However, baseflow cannot be measured directly in the field~\cite{ChapmanMaxwell1996}, so practitioners rely on separation methods to estimate it from observed total streamflow records.
+Streamflow comprises two primary components: quickflow, which responds rapidly to precipitation and snowmelt events, and baseflow, which represents the slower, sustained contribution from groundwater discharge, bank storage, and other delayed sources. Baseflow is critical for sustaining river ecosystems during dry periods~\cite{Smakhtin2001}, supporting water supply planning, managing groundwater--surface water interactions~\cite{Barlow2012}, and calibrating hydrological models~\cite{ChapmanMaxwell1996,Eckhardt2005}. As climate and land-use change continue to alter the global water cycle, understanding baseflow dynamics has become increasingly important~\cite{Tan2020}. However, baseflow cannot be measured directly in the field~\cite{ChapmanMaxwell1996}, so practitioners rely on separation methods to estimate it from observed total streamflow records.
 
-Over several decades, a diverse array of separation methods has been developed, which can be broadly organized into four categories. \textit{Recursive digital filters} apply signal-processing or linear-reservoir-based equations to partition the hydrograph into baseflow and quickflow components~\cite{Lyne1979,Chapman1991,Eckhardt2005}. \textit{Graphical methods} identify baseflow through geometric rules applied to the hydrograph, such as fixed intervals, sliding windows, or local minima~\cite{Sloto1996}. \textit{Recession-based methods} exploit the characteristic exponential decay of baseflow during dry periods to anchor separation points~\cite{Rutledge1998}. \textit{Tracer-based methods} use hydrochemical measurements, such as specific conductance, to quantify the groundwater fraction via mass balance~\cite{Stewart2007}.
+Over several decades, a diverse array of separation methods has been developed, as summarized in several reviews~\cite{Tallaksen1995,McMahon2021}. These methods can be broadly organized into four categories. \textit{Recursive digital filters} apply signal-processing or linear-reservoir-based equations to partition the hydrograph into baseflow and quickflow components~\cite{Lyne1979,Nathan1990,Chapman1991,Eckhardt2005}. \textit{Graphical methods} identify baseflow through geometric rules applied to the hydrograph, such as fixed intervals, sliding windows, or local minima~\cite{Sloto1996}. \textit{Recession-based methods} exploit the characteristic exponential decay of baseflow during dry periods to anchor separation points~\cite{Tallaksen1995,Rutledge1998}. \textit{Tracer-based methods} use hydrochemical measurements, such as specific conductance or stable isotopes, to quantify the groundwater fraction via mass balance~\cite{Stewart2007,Klaus2013}. The choice of method can substantially affect the resulting baseflow index, as demonstrated by comparative studies across diverse catchments~\cite{Eckhardt2008,Lott2016}.
 
-Despite the abundance of methods, practitioners face practical barriers to applying them. The USGS programs HYSEP~\cite{Sloto1996} and PART~\cite{Rutledge1998} are written in legacy Fortran and are difficult to integrate into modern analytical workflows. The Web-based Hydrograph Analysis Tool (WHAT)~\cite{Lim2005} provides a graphical interface but cannot be scripted or automated. Several R packages exist but are limited to a small subset of methods. The Python package by Xie et al.~\cite{Xie2020} implemented 11 digital filters but was designed primarily as research code for a specific comparative study, bundling geospatial and study-specific functionality that limited its reusability as a general-purpose library.
+Despite the abundance of methods, practitioners face practical barriers to applying them. The USGS programs HYSEP~\cite{Sloto1996} and PART~\cite{Rutledge1998} are written in legacy Fortran and are difficult to integrate into modern analytical workflows. The Web-based Hydrograph Analysis Tool (WHAT)~\cite{Lim2005} provides a graphical interface but cannot be scripted or automated. Several R packages exist but are limited to a small subset of methods~\cite{Pelletier2020}. The Python package by Xie et al.~\cite{Xie2020} implemented 11 digital filters but was designed primarily as research code for a specific comparative study, bundling geospatial and study-specific functionality that limited its reusability as a general-purpose library. More broadly, the growing Python ecosystem for hydrology---including packages such as Hydrostats~\cite{Roberts2018} and Pastas~\cite{Collenteur2019}---has demonstrated the value of well-documented, pip-installable tools, yet no comprehensive Python package for baseflow separation has been available.
 
 To address these gaps, we present \texttt{pybaseflow}, an open-source Python package that provides a unified, consistent interface to 17 baseflow separation methods across all four methodological paradigms. The package builds on the work of Xie et al.~\cite{Xie2020} but has been extensively refactored: study-specific code has been removed, four new methods have been added (PART, CMB, IHACRES, and BFlow), a new tracer module has been introduced, and the recursive digital filters have been unified under a single generalized equation. The result is a focused, pip-installable library with a flat, function-oriented API, built-in USGS data retrieval, Numba-accelerated performance, and comprehensive documentation.
 
@@ -192,7 +192,7 @@ The method iterates, progressively relaxing the recession requirement until the 
 
 \subsubsection{BFlow Method}
 
-The BFlow method~\cite{Arnold1999} estimates the SWAT model's baseflow recession constant (ALPHA\_BF) by fitting the exponential recession model:
+Recession analysis underpins many baseflow separation approaches, as the recession curve encodes information about aquifer storage and drainage characteristics~\cite{Tallaksen1995,Wittenberg1999}. The BFlow method~\cite{Arnold1999} estimates the SWAT model's baseflow recession constant (ALPHA\_BF) by fitting the exponential recession model:
 \begin{equation}
 \label{eq:bflow}
 Q_b(t) = Q_b(0) \cdot e^{-\alpha t}
@@ -208,7 +208,7 @@ The BN77 method~\cite{Cheng2016} identifies drought-flow data points suitable fo
 
 \subsubsection{Conductivity Mass Balance (CMB)}
 
-The conductivity mass balance method~\cite{Stewart2007} separates baseflow using specific conductance (SC) as a conservative tracer. From the two-component mass balance:
+The conductivity mass balance method~\cite{Stewart2007} separates baseflow using specific conductance (SC) as a conservative tracer, an approach that has been extended to continuous estimation from discrete water-quality measurements~\cite{Miller2015}. From the two-component mass balance:
 \begin{equation}
 \label{eq:cmb}
 Q_b(t) = Q(t) \cdot \frac{SC(t) - SC_{RO}}{SC_{BF} - SC_{RO}}
@@ -265,7 +265,7 @@ Several computationally intensive functions, particularly the graphical method i
 \subsection{Dependencies and Installation}
 \label{sec:dependencies}
 
-The package requires Python $\geq$ 3.9 and depends on three core libraries: NumPy, pandas, and Numba. It is installable via:
+The package requires Python $\geq$ 3.9 and depends on three core libraries: NumPy~\cite{Harris2020}, pandas~\cite{McKinney2010}, and Numba~\cite{Lam2015}. It is installable via:
 
 \begin{lstlisting}[numbers=none]
 pip install pybaseflow
@@ -349,7 +349,7 @@ a = recession_coefficient(Q, strict=True)
 
 The function identifies strict baseflow periods (days on the recession limb where flow is declining monotonically) and computes the 5th percentile of the $-dQ/Q$ ratios to estimate the recession constant (Figure~\ref{fig:recession}).
 
-For the Eckhardt filter, the $\mathrm{BFI_{max}}$ parameter can be set using the guidelines of Eckhardt~\cite{Eckhardt2005}: 0.80 for perennial streams with porous aquifers, 0.50 for ephemeral streams with porous aquifers, and 0.25 for perennial streams with hard-rock aquifers.
+For the Eckhardt filter, the $\mathrm{BFI_{max}}$ parameter can be set using the guidelines of Eckhardt~\cite{Eckhardt2005}: 0.80 for perennial streams with porous aquifers, 0.50 for ephemeral streams with porous aquifers, and 0.25 for perennial streams with hard-rock aquifers. Alternative approaches for estimating $\mathrm{BFI_{max}}$ objectively, such as backward filtering, have also been proposed~\cite{Collischonn2013}.
 
 \begin{figure}[H]
 \centering
@@ -388,7 +388,7 @@ Figure~\ref{fig:cmb} shows the CMB separation alongside the specific conductance
 \subsection{Filter Family Taxonomy and Relationships}
 \label{sec:taxonomy}
 
-The generalized filter equation (Equation~\ref{eq:generalized}) provides a unifying lens through which to understand the relationships among recursive digital filters. Figure~\ref{fig:families} illustrates the structural difference between the two filter families during a peak flow event: the $\gamma = 0$ family (linear reservoir) responds only to the current streamflow, while the $\gamma = 1$ family (signal processing) incorporates a moving average of streamflow, producing different recession characteristics.
+The generalized filter equation (Equation~\ref{eq:generalized}) provides a unifying lens through which to understand the relationships among recursive digital filters. Previous work has examined individual filter sensitivities~\cite{Kang2022}, but the unified framework presented here reveals structural connections across the full family of methods. Figure~\ref{fig:families} illustrates the structural difference between the two filter families during a peak flow event: the $\gamma = 0$ family (linear reservoir) responds only to the current streamflow, while the $\gamma = 1$ family (signal processing) incorporates a moving average of streamflow, producing different recession characteristics.
 
 \begin{figure}[H]
 \centering
@@ -537,6 +537,62 @@ Xie, J.; Liu, X.; Wang, K.; Yang, T.; Liang, K.; Liu, C. Evaluation of Typical M
 
 \bibitem{Zhang2021}
 Zhang, J.; Song, J.; Cheng, L.; Zheng, H.; Wang, Y.; Huai, B.; Sun, W.; Qi, S.; Zhao, P.; Wang, Y.; Li, Q. Can the Two-Parameter Recursive Digital Filter Really Be Calibrated by the Conductivity Mass Balance Method? \textit{Hydrol. Earth Syst. Sci.} \textbf{2021}, \textit{25}, 1747--1760. \url{https://doi.org/10.5194/hess-25-1747-2021}
+
+% --- Additional references ---
+
+\bibitem{Barlow2012}
+Barlow, P.M.; Leake, S.A. Streamflow Depletion by Wells---Understanding and Managing the Effects of Groundwater Pumping on Streamflow; \textit{U.S. Geological Survey Circular 1376}; USGS: Reston, VA, USA, 2012; 84~p. \url{https://doi.org/10.3133/cir1376}
+
+\bibitem{Collenteur2019}
+Collenteur, R.A.; Bakker, M.; Calje, R.; Klop, S.A.; Schaars, F. Pastas: Open Source Software for the Analysis of Groundwater Time Series. \textit{Groundwater} \textbf{2019}, \textit{57}, 877--885. \url{https://doi.org/10.1111/gwat.12925}
+
+\bibitem{Collischonn2013}
+Collischonn, W.; Fan, F.M. Defining Parameters for Eckhardt's Digital Baseflow Filter. \textit{Hydrol. Process.} \textbf{2013}, \textit{27}, 2614--2622. \url{https://doi.org/10.1002/hyp.9391}
+
+\bibitem{Eckhardt2008}
+Eckhardt, K. A Comparison of Baseflow Indices, Which Were Calculated with Seven Different Baseflow Separation Methods. \textit{J. Hydrol.} \textbf{2008}, \textit{352}, 168--173. \url{https://doi.org/10.1016/j.jhydrol.2008.01.005}
+
+\bibitem{Harris2020}
+Harris, C.R.; Millman, K.J.; van~der~Walt, S.J.; Gommers, R.; Virtanen, P.; Cournapeau, D.; Wieser, E.; Taylor, J.; Berg, S.; Smith, N.J.; et~al. Array Programming with NumPy. \textit{Nature} \textbf{2020}, \textit{585}, 357--362. \url{https://doi.org/10.1038/s41586-020-2649-2}
+
+\bibitem{Kang2022}
+Kang, T.; Lee, S.; Lee, N.; Jin, Y. Baseflow Separation Using the Digital Filter Method: Review and Sensitivity Analysis. \textit{Water} \textbf{2022}, \textit{14}, 485. \url{https://doi.org/10.3390/w14030485}
+
+\bibitem{Klaus2013}
+Klaus, J.; McDonnell, J.J. Hydrograph Separation Using Stable Isotopes: Review and Evaluation. \textit{J. Hydrol.} \textbf{2013}, \textit{505}, 47--64. \url{https://doi.org/10.1016/j.jhydrol.2013.09.006}
+
+\bibitem{Lam2015}
+Lam, S.K.; Pitrou, A.; Seibert, S. Numba: A LLVM-Based Python JIT Compiler. In Proceedings of the Second Workshop on the LLVM Compiler Infrastructure in HPC (LLVM '15); ACM: New York, NY, USA, 2015; pp.~1--6. \url{https://doi.org/10.1145/2833157.2833162}
+
+\bibitem{Lott2016}
+Lott, D.A.; Stewart, M.T. Base Flow Separation: A Comparison of Analytical and Mass Balance Methods. \textit{J. Hydrol.} \textbf{2016}, \textit{535}, 525--533. \url{https://doi.org/10.1016/j.jhydrol.2016.01.063}
+
+\bibitem{McKinney2010}
+McKinney, W. Data Structures for Statistical Computing in Python. In Proceedings of the 9th Python in Science Conference; Austin, TX, USA, 2010; pp.~56--61. \url{https://doi.org/10.25080/Majora-92bf1922-00a}
+
+\bibitem{McMahon2021}
+McMahon, T.A.; Nathan, R.J. Baseflow and Transmission Loss: A Review. \textit{WIREs Water} \textbf{2021}, \textit{8}, e1527. \url{https://doi.org/10.1002/wat2.1527}
+
+\bibitem{Miller2015}
+Miller, M.P.; Johnson, H.M.; Susong, D.D.; Wolock, D.M. A New Approach for Continuous Estimation of Baseflow Using Discrete Water Quality Data: Method Description and Comparison with Baseflow Estimates from Two Existing Approaches. \textit{J. Hydrol.} \textbf{2015}, \textit{522}, 203--210. \url{https://doi.org/10.1016/j.jhydrol.2014.12.039}
+
+\bibitem{Pelletier2020}
+Pelletier, A.; Andrassian, V. Hydrograph Separation: An Impartial Parametrisation for an Imperfect Method. \textit{Hydrol. Earth Syst. Sci.} \textbf{2020}, \textit{24}, 1171--1187. \url{https://doi.org/10.5194/hess-24-1171-2020}
+
+\bibitem{Roberts2018}
+Roberts, W.; Williams, G.P.; Jackson, E.; Nelson, E.J.; Ames, D.P. Hydrostats: A Python Package for Characterizing Errors between Observed and Predicted Time Series. \textit{Hydrology} \textbf{2018}, \textit{5}, 66. \url{https://doi.org/10.3390/hydrology5040066}
+
+\bibitem{Smakhtin2001}
+Smakhtin, V.U. Low Flow Hydrology: A Review. \textit{J. Hydrol.} \textbf{2001}, \textit{240}, 147--186. \url{https://doi.org/10.1016/S0022-1694(00)00340-1}
+
+\bibitem{Tallaksen1995}
+Tallaksen, L.M. A Review of Baseflow Recession Analysis. \textit{J. Hydrol.} \textbf{1995}, \textit{165}, 349--370. \url{https://doi.org/10.1016/0022-1694(94)02540-R}
+
+\bibitem{Tan2020}
+Tan, X.; Gan, T.Y. Global Changes in Baseflow Under the Impacts of Changing Climate and Vegetation. \textit{Water Resour. Res.} \textbf{2020}, \textit{56}, e2020WR027349. \url{https://doi.org/10.1029/2020WR027349}
+
+\bibitem{Wittenberg1999}
+Wittenberg, H.; Sivapalan, M. Watershed Groundwater Balance Estimation Using Streamflow Recession Analysis and Baseflow Separation. \textit{J. Hydrol.} \textbf{1999}, \textit{219}, 20--33. \url{https://doi.org/10.1016/S0022-1694(99)00040-2}
 
 \end{thebibliography}
 
