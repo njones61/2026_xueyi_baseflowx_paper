@@ -165,9 +165,15 @@ Graphical methods partition the hydrograph using geometric rules rather than rec
 
 The three HYSEP methods~\cite{Sloto1996} use a drainage-area-dependent interval
 $N^*$, computed as the nearest odd integer $\geq 2\lfloor A^{0.2}\rfloor + 1$,
-where $A$ is the drainage area in square miles.
+where $A$ is the drainage area in square miles. This interval approximates the duration of surface runoff following a storm event; larger catchments have longer runoff durations.
 
-The \textit{fixed interval} method divides the record into non-overlapping blocks of $N^*$ days and assigns the minimum streamflow in each block as baseflow for the entire interval, producing a characteristic staircase pattern. The \textit{sliding interval} method applies a moving window of width $N^*$, assigning the window minimum to the central day, producing a smoother envelope. The \textit{local minimum} method identifies days that are local minima within the $N^*$-day window and connects them by linear interpolation.
+The \textit{fixed interval} method divides the record into non-overlapping blocks of $N^*$ days and assigns the minimum streamflow in each block as baseflow for the entire interval, producing a characteristic staircase pattern (Figure~\ref{fig:fixed}). The \textit{sliding interval} method applies a moving window of width $N^*$, assigning the window minimum to the central day, producing a smoother lower envelope. The \textit{local minimum} method identifies days that are local minima within the $N^*$-day window and connects them by linear interpolation, yielding a piecewise-linear baseflow hydrograph that tracks the rising and falling limbs more closely than the other two methods. All three methods are non-parametric beyond the drainage area input and are well suited to applications where recession coefficients are unknown.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fixed_interval.png}
+\caption{Fixed interval (HYSEP) baseflow separation applied to Fish River, showing the characteristic staircase pattern produced by assigning block minima.\label{fig:fixed}}
+\end{figure}
 
 \subsubsection{UKIH Smoothed Minima Method}
 
@@ -176,16 +182,16 @@ The UK Institute of Hydrology method~\cite{UKIH1980} divides the record into non
 \label{eq:ukih}
 0.9 \, Q_{\min,i} < Q_{\min,i-1} \quad \text{and} \quad 0.9 \, Q_{\min,i} < Q_{\min,i+1}
 \end{equation}
-Baseflow is obtained by linearly interpolating between retained turning points.
+The 0.9 multiplier prevents shallow recession-limb minima from being misidentified as true turning points. Baseflow is obtained by linearly interpolating between retained turning points. Unlike the HYSEP methods, the UKIH method does not require drainage area as an input, making it applicable when catchment characteristics are unavailable.
 
 \subsubsection{PART Method}
 
-The PART method~\cite{Rutledge1998}, implemented here in Python for the first time, identifies ``antecedent recession'' days where streamflow has been declining for at least $N = A^{0.2}$ days (with $N$ derived from the log-cycle criterion of Barnes~\cite{Barnes1939}). At these anchor points, baseflow is set equal to streamflow. Between anchor points, baseflow is interpolated in log-space:
+The PART method~\cite{Rutledge1998}, implemented here in Python for the first time, identifies ``antecedent recession'' days where streamflow has been declining for at least $N = A^{0.2}$ days (with $N$ derived from the log-cycle criterion of Barnes~\cite{Barnes1939}). At these anchor points, baseflow is assumed equal to streamflow---a physically reasonable assumption during sustained recession when surface runoff has ceased. Between anchor points, baseflow is interpolated in log-space:
 \begin{equation}
 \label{eq:part}
 \log_{10}(b_t) = \log_{10}(b_{t_0}) + \frac{t - t_0}{t_1 - t_0} \left[ \log_{10}(b_{t_1}) - \log_{10}(b_{t_0}) \right]
 \end{equation}
-The method iterates, progressively relaxing the recession requirement until the number of anchor points stabilizes.
+The use of logarithmic interpolation reflects the approximately exponential nature of baseflow recession. The method iterates in three passes, progressively relaxing the recession requirement (from $N$ to $0.5N$ to a single declining day) until the number of anchor points stabilizes. This iterative approach makes PART more robust than single-pass graphical methods, particularly during periods of closely spaced storm events. The original PART program was distributed as a Fortran executable~\cite{Rutledge1998}; the implementation in \texttt{pybaseflow} makes this widely used method accessible within the Python ecosystem for the first time.
 
 \subsection{Recession Analysis}
 \label{sec:recession}
@@ -208,16 +214,18 @@ The BN77 method~\cite{Cheng2016} identifies drought-flow data points suitable fo
 
 \subsubsection{Conductivity Mass Balance (CMB)}
 
-The conductivity mass balance method~\cite{Stewart2007} separates baseflow using specific conductance (SC) as a conservative tracer, an approach that has been extended to continuous estimation from discrete water-quality measurements~\cite{Miller2015}. From the two-component mass balance:
+While the digital filter and graphical methods described above rely solely on streamflow data, tracer-based methods incorporate water-quality measurements to provide a physically grounded separation~\cite{Klaus2013}. The conductivity mass balance (CMB) method~\cite{Stewart2007} separates baseflow using specific conductance (SC) as a conservative tracer, an approach that has been extended to continuous estimation from discrete water-quality measurements~\cite{Miller2015}. The underlying assumption is that streamflow can be decomposed into two components---baseflow and runoff---each with a characteristic end-member SC value. From the two-component mass balance:
 \begin{equation}
 \label{eq:cmb}
 Q_b(t) = Q(t) \cdot \frac{SC(t) - SC_{RO}}{SC_{BF} - SC_{RO}}
 \end{equation}
-where $SC_{BF}$ and $SC_{RO}$ are the end-member specific conductance values for baseflow and runoff, respectively. End-members can be supplied by the user or estimated automatically from the data.
+where $SC_{BF}$ and $SC_{RO}$ are the end-member specific conductance values for baseflow and runoff, respectively. Baseflow typically exhibits higher SC due to prolonged contact with aquifer minerals, while runoff SC is lower, reflecting the dilute character of recent precipitation. End-members can be supplied by the user or estimated automatically from the data: \texttt{pybaseflow} estimates $SC_{BF}$ from the upper percentiles of the SC distribution during low-flow periods and $SC_{RO}$ from the lower percentiles during high-flow events.
+
+The CMB method is particularly valuable as an independent validation source for digital filter results, since it relies on fundamentally different information (hydrochemistry vs.\ hydrograph shape)~\cite{Lott2016}.
 
 \subsubsection{CMB-to-Eckhardt Calibration Bridge}
 
-A novel feature of the package is the ability to calibrate the Eckhardt filter's $\mathrm{BFI_{max}}$ parameter from tracer-derived baseflow, linking physical measurements to digital filter parameters. This follows the approach suggested by Stewart et al.~\cite{Stewart2007}, with the caveat noted by Zhang et al.~\cite{Zhang2021} that such calibration performs well at annual time scales (NSE~0.91--1.00) but can degrade at daily time scales (mean NSE of $-0.30$ across 26 stations).
+A novel feature of the package is the ability to calibrate the Eckhardt filter's $\mathrm{BFI_{max}}$ parameter from tracer-derived baseflow, linking physical measurements to digital filter parameters. The function \texttt{calibrate\_eckhardt\_from\_cmb()} computes the $\mathrm{BFI_{max}}$ value that minimizes the difference between the Eckhardt-filtered baseflow and the CMB-derived baseflow over the period of record. This follows the approach suggested by Stewart et al.~\cite{Stewart2007}, with the important caveat noted by Zhang et al.~\cite{Zhang2021} that such calibration performs well at annual time scales (NSE~0.91--1.00) but can degrade substantially at daily time scales (mean NSE of $-0.30$ across 26 stations). Users should therefore interpret daily CMB-calibrated results with caution and consider annual-scale agreement as the primary calibration target.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Software Design and Implementation}
@@ -382,6 +390,69 @@ Figure~\ref{fig:cmb} shows the CMB separation alongside the specific conductance
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Cross-Method Comparison}
+\label{sec:validation}
+
+To illustrate the range of baseflow estimates produced by different methodological paradigms, we apply all 17 methods to the bundled Fish River dataset (USGS 01013500, 2019--2020). The Fish River near Fort Kent, Maine drains 1430~km$^2$ of predominantly forested terrain underlain by fractured bedrock and glacial till. Its snowmelt-dominated regime features a pronounced spring freshet, well-defined baseflow recession in late summer and autumn, and minimal regulation, making it a suitable test case for baseflow separation.
+
+\subsection{Baseflow Index Comparison}
+\label{sec:bfi_comparison}
+
+Table~\ref{tab:bfi} summarizes the baseflow index (BFI = $\sum b_t / \sum Q_t$) computed by each method using default or recommended parameters. The recession coefficient was estimated as $a = 0.977$ using the \texttt{recession\_coefficient()} function.
+
+\begin{table}[H]
+\caption{Baseflow index (BFI) values for Fish River (USGS 01013500, 2019--2020) computed by each method in \texttt{pybaseflow}.\label{tab:bfi}}
+\small
+\begin{tabularx}{\textwidth}{llcc}
+\toprule
+\textbf{Paradigm} & \textbf{Method} & \textbf{BFI} & \textbf{Key Parameters} \\
+\midrule
+\multirow{6}{*}{Digital filter ($\gamma=0$)}
+ & Chapman--Maxwell & 0.69 & $a = 0.977$ \\
+ & Boughton         & 0.70 & $a = 0.977$, $C = 0.055$ \\
+ & Eckhardt         & 0.72 & $a = 0.977$, $\mathrm{BFI_{max}} = 0.80$ \\
+ & EWMA             & 0.70 & $e = 0.02$ \\
+ & Furey--Gupta     & 0.63 & $a = 0.977$, $A = 0.5$ \\
+ & WHAT             & 0.72 & $a = 0.977$, $\mathrm{BFI_{max}} = 0.80$ \\
+\addlinespace
+\multirow{4}{*}{Digital filter ($\gamma=1$)}
+ & Lyne--Hollick    & 0.74 & $\beta_p = 0.925$ \\
+ & LH (3-pass)      & 0.63 & $\beta_p = 0.925$ \\
+ & Chapman (1991)   & 0.67 & $a = 0.977$ \\
+ & Willems          & 0.68 & $a = 0.977$, $w = 0.1$ \\
+\addlinespace
+Digital filter (hybrid) & IHACRES & 0.69 & $a = 0.977$, $C = 0.055$, $\alpha_s = -0.5$ \\
+\addlinespace
+\multirow{5}{*}{Graphical / recession}
+ & Fixed interval   & 0.78 & $A = 1430$~km$^2$ \\
+ & Sliding interval & 0.73 & $A = 1430$~km$^2$ \\
+ & Local minimum    & 0.65 & $A = 1430$~km$^2$ \\
+ & UKIH             & 0.66 & --- \\
+ & PART             & 0.68 & $A = 1430$~km$^2$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Several patterns emerge from this comparison. The BFI values range from 0.63 (Furey--Gupta and 3-pass Lyne--Hollick) to 0.78 (fixed interval), a spread of 0.15 that is consistent with the range reported by Eckhardt~\cite{Eckhardt2008} across multiple catchments. This variation underscores the well-known sensitivity of baseflow estimates to method choice and highlights the value of applying multiple methods, as \texttt{pybaseflow} facilitates.
+
+Within the digital filter family, the $\gamma = 0$ methods cluster between 0.63 and 0.72, while the single-pass $\gamma = 1$ Lyne--Hollick filter produces a higher BFI (0.74) because its symmetric moving average preserves more of the hydrograph as baseflow. Additional passes progressively reduce BFI---the 3-pass variant drops to 0.63---consistent with the spectral analysis of Spongberg~\cite{Spongberg2000}.
+
+Among the graphical methods, the fixed interval method yields the highest BFI because its block-minimum approach is the most conservative, assigning a constant (high) baseflow across each block. The local minimum and UKIH methods produce lower values by tracking the hydrograph shape more closely. PART falls in the middle of the graphical methods, reflecting its use of recession-qualified anchor points combined with log-space interpolation.
+
+\subsection{Method Selection Guidance}
+\label{sec:method_guidance}
+
+The results above, combined with the theoretical framework in Section~\ref{sec:framework}, suggest the following practical guidance for method selection:
+
+\begin{itemize}[nosep]
+\item When recession coefficients can be reliably estimated and physical interpretability is desired, the \textbf{Eckhardt filter} is recommended due to its $\mathrm{BFI_{max}}$ parameterization and well-documented guidelines~\cite{Eckhardt2005,Collischonn2013}.
+\item When catchment parameters are uncertain, \textbf{graphical methods} (HYSEP, UKIH) require only drainage area or no parameters at all, making them robust defaults.
+\item When water-quality data are available, the \textbf{CMB method} provides an independent, physically grounded estimate and can serve as a calibration target for digital filters via the CMB-to-Eckhardt bridge.
+\item For consistency with USGS studies, the \textbf{PART method} is directly comparable to legacy Fortran outputs.
+\item When multiple methods are applied, the \textbf{ensemble spread} provides a practical uncertainty estimate, as the true baseflow likely falls within the range of method-specific estimates~\cite{Eckhardt2008}.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Discussion}
 \label{sec:discussion}
 
@@ -409,7 +480,7 @@ The algebraic equivalence between the Boughton and Eckhardt filters---related by
 \subsection{Comparison with Existing Tools}
 \label{sec:comparison_tools}
 
-Table~\ref{tab:comparison} compares \texttt{pybaseflow} with existing baseflow separation tools.
+Table~\ref{tab:comparison} compares \texttt{pybaseflow} with existing baseflow separation tools across several dimensions relevant to modern hydrological practice.
 
 \begin{table}[H]
 \caption{Comparison of \texttt{pybaseflow} with existing baseflow separation tools.\label{tab:comparison}}
@@ -430,15 +501,25 @@ Unified filter framework & Yes & N/A & No & No \\
 \end{tabularx}
 \end{table}
 
+The USGS programs HYSEP and PART~\cite{Sloto1996,Rutledge1998} remain widely used in regulatory and research contexts, but their Fortran executables cannot be called from Python scripts, Jupyter notebooks, or cloud-based workflows without cumbersome wrappers. The WHAT tool~\cite{Lim2005} offers web accessibility but is limited to three methods and cannot be automated for batch processing. The original \texttt{baseflow} package by Xie et al.~\cite{Xie2020} provided a Python implementation of 11 digital filters but included study-specific geospatial functionality (global freeze/thaw rasters, spatial batch processing) that complicated its use as a general-purpose library, and it lacked graphical, recession-based, and tracer-based methods. R-based alternatives such as the parametric approach of Pelletier and Andrassian~\cite{Pelletier2020} offer single-method implementations but do not provide the breadth of methods needed for cross-method comparison studies.
+
+By contrast, \texttt{pybaseflow} combines the broadest method coverage (17 methods across four paradigms) with a clean, focused API and the unified filter framework described in Section~\ref{sec:generalized_filter}. Its integration into the Python scientific ecosystem---alongside NumPy~\cite{Harris2020}, pandas~\cite{McKinney2010}, and complementary hydrology packages such as Hydrostats~\cite{Roberts2018} and Pastas~\cite{Collenteur2019}---enables seamless incorporation into reproducible analytical workflows.
+
 \subsection{Limitations}
 \label{sec:limitations}
 
-Several limitations should be noted. The package currently operates on daily time-step data only; sub-daily or monthly applications would require adaptation. All methods operate on single-station time series; spatial interpolation of baseflow across a watershed is not supported. The recursive digital filters are deterministic and do not provide uncertainty estimates. For the CMB method, the assumption of two end-members and conservative mixing may not hold in all hydrogeological settings. Furthermore, as Zhang et al.~\cite{Zhang2021} demonstrated, calibrating Eckhardt filter parameters from CMB-derived baseflow works well at annual scales but can perform poorly at daily scales, and users should be aware of this limitation.
+Several limitations should be noted. First, the package currently operates on daily time-step data only; sub-daily applications (e.g., urban hydrology) or monthly aggregations would require adaptation of the filter equations and graphical method intervals. Second, all methods operate on single-station time series; spatial interpolation of baseflow across a watershed is not supported, though the scriptable API makes it straightforward to loop over multiple stations programmatically.
+
+Third, the recursive digital filters are deterministic and do not provide uncertainty estimates. As shown in Table~\ref{tab:bfi}, different methods can yield BFI values that differ by 0.15 or more for the same record, and users should treat the spread across methods as a first-order uncertainty indicator rather than relying on any single estimate.
+
+Fourth, for the CMB method, the assumption of two end-members and conservative mixing may not hold in all hydrogeological settings---particularly in catchments with multiple groundwater sources, evaporative concentration, or geochemical reactions that alter SC. Furthermore, as Zhang et al.~\cite{Zhang2021} demonstrated, calibrating Eckhardt filter parameters from CMB-derived baseflow works well at annual scales but can perform poorly at daily scales, and users should interpret daily-scale calibrated results with caution.
+
+Finally, while the package includes parameter estimation tools, the recession coefficient and $\mathrm{BFI_{max}}$ estimates are sensitive to the period of record and the presence of regulation or diversions. Users working with regulated streams should exercise judgment in interpreting results.
 
 \subsection{Future Development}
 \label{sec:future}
 
-Planned future development includes support for sub-daily time steps, automated method selection algorithms, uncertainty quantification for filter-based methods, integration of additional tracer types (e.g., stable isotopes), and spatial baseflow mapping using gridded data.
+Several directions for future development are planned. Support for sub-daily time steps would extend the package's applicability to urban and event-scale hydrology. Automated method selection algorithms could recommend appropriate methods based on catchment characteristics and data availability. Uncertainty quantification---either through bootstrap resampling or Bayesian parameter estimation---would provide formal confidence intervals on baseflow estimates. Integration of additional tracer types, such as stable isotopes~\cite{Klaus2013}, would expand the tracer module beyond conductivity. Finally, spatial baseflow mapping using gridded runoff data would support regional and continental-scale applications, building on the batch-processing capabilities that can be constructed from the existing single-station API.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}
