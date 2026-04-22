@@ -10,7 +10,8 @@
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*-eps-converted-to.pdf
 
-# Compiled output
-*.pdf
-*.docx
+# Compiled output (root only, to avoid ignoring template assets in Definitions/)
+/*.pdf
+/*.docx
