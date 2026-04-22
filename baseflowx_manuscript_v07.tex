@@ -44,10 +44,10 @@
 
 %=================================================================
 % Full title of the paper (Capitalized)
-\Title{PyBaseflow: A Python Package for Baseflow Separation Unifying Digital Filters, Graphical Methods, and Tracer-Based Approaches}
+\Title{BaseflowX: A Python Package for Baseflow Separation Unifying Digital Filters, Graphical Methods, and Tracer-Based Approaches}
 
 % MDPI internal command: Title for citation in the left column
-\TitleCitation{PyBaseflow: A Python Package for Baseflow Separation}
+\TitleCitation{BaseflowX: A Python Package for Baseflow Separation}
 
 % Author ORCID IDs
 \newcommand{\orcidauthorA}{0000-0002-7597-2825} % Norman Jones
@@ -75,7 +75,7 @@ $^{3}$ \quad Civil, Construction and Environmental Engineering, University of Al
 %\conference{}
 
 % Abstract (Do not insert blank lines, i.e. \\)
-\abstract{Baseflow---the portion of streamflow sustained by groundwater discharge---is fundamental to watershed hydrology, water resource management, and ecological assessment. Because baseflow cannot be measured directly, it must be estimated by separating it from total streamflow. Numerous separation methods exist, but they are scattered across legacy Fortran programs, web tools, and research scripts with inconsistent interfaces. We present \texttt{pybaseflow}, an open-source Python package that unifies 17 baseflow separation methods spanning four methodological paradigms: recursive digital filters (both linear-reservoir-based and signal-processing-based families), graphical and recession-based methods, and tracer-based approaches. A key contribution is the identification of a generalized three-parameter recursive digital filter equation that subsumes all 11 implemented recursive filters as special cases, revealing previously undocumented algebraic relationships among popular methods. The package also introduces the first Python implementation of the PART method, a conductivity mass balance (CMB) tracer module, and a CMB-to-Eckhardt calibration bridge linking physical measurements to digital filter parameters. Built on NumPy with Numba acceleration, \texttt{pybaseflow} provides a consistent function-oriented API, built-in USGS data retrieval, and comprehensive documentation. The package is pip-installable and available under the MIT license.}
+\abstract{Baseflow---the portion of streamflow sustained by groundwater discharge---is fundamental to watershed hydrology, water resource management, and ecological assessment. Because baseflow cannot be measured directly, it must be estimated by separating it from total streamflow. Numerous separation methods exist, but they are scattered across legacy Fortran programs, web tools, and research scripts with inconsistent interfaces. We present \texttt{baseflowx}, an open-source Python package that unifies 17 baseflow separation methods spanning four methodological paradigms: recursive digital filters (both linear-reservoir-based and signal-processing-based families), graphical and recession-based methods, and tracer-based approaches. A key contribution is the identification of a generalized three-parameter recursive digital filter equation that subsumes all 11 implemented recursive filters as special cases, revealing previously undocumented algebraic relationships among popular methods. The package also introduces the first Python implementation of the PART method, a conductivity mass balance (CMB) tracer module, and a CMB-to-Eckhardt calibration bridge linking physical measurements to digital filter parameters. Built on NumPy with Numba acceleration, \texttt{baseflowx} provides a consistent function-oriented API, built-in USGS data retrieval, and comprehensive documentation. The package is pip-installable and available under the MIT license.}
 
 % Keywords
 \keyword{baseflow separation; digital filter; Python; open-source software; recession analysis; streamflow; tracer; hydrology}
@@ -93,7 +93,7 @@ Over several decades, a diverse array of separation methods has been developed, 
 
 Despite the abundance of methods, practitioners face practical barriers to applying them. The USGS programs HYSEP~\cite{Sloto1996} and PART~\cite{Rutledge1998} are written in legacy Fortran and are difficult to integrate into modern analytical workflows. The Web-based Hydrograph Analysis Tool (WHAT)~\cite{Lim2005} provides a graphical interface but cannot be scripted or automated. Several R packages exist but are limited to a small subset of methods~\cite{Pelletier2020}. The Python package by Xie et al.~\cite{Xie2020} implemented 11 digital filters but was designed primarily as research code for a specific comparative study, bundling geospatial and study-specific functionality that limited its reusability as a general-purpose library. More broadly, the growing Python ecosystem for hydrology---including packages such as Hydrostats~\cite{Roberts2018} and Pastas~\cite{Collenteur2019}---has demonstrated the value of well-documented, pip-installable tools, yet no comprehensive Python package for baseflow separation has been available.
 
-To address these gaps, we present \texttt{pybaseflow}, an open-source Python package that provides a unified, consistent interface to 17 baseflow separation methods across all four methodological paradigms. The package builds on the work of Xie et al.~\cite{Xie2020} but has been extensively refactored: study-specific code has been removed, four new methods have been added (PART, CMB, IHACRES, and BFlow), a new tracer module has been introduced, and the recursive digital filters have been unified under a single generalized equation. The result is a focused, pip-installable library with a flat, function-oriented API, built-in USGS data retrieval, Numba-accelerated performance, and comprehensive documentation.
+To address these gaps, we present \texttt{baseflowx}, an open-source Python package that provides a unified, consistent interface to 17 baseflow separation methods across all four methodological paradigms. The package builds on the work of Xie et al.~\cite{Xie2020} but has been extensively refactored: study-specific code has been removed, four new methods have been added (PART, CMB, IHACRES, and BFlow), a new tracer module has been introduced, and the recursive digital filters have been unified under a single generalized equation. The result is a focused, pip-installable library with a flat, function-oriented API, built-in USGS data retrieval, Numba-accelerated performance, and comprehensive documentation.
 
 This paper is organized as follows. Section~\ref{sec:framework} presents the theoretical framework, including the generalized recursive digital filter equation and descriptions of all implemented methods. Section~\ref{sec:design} describes the software architecture and implementation. Section~\ref{sec:examples} demonstrates usage through worked examples. Section~\ref{sec:discussion} discusses the package in context, including limitations and future directions. Section~\ref{sec:conclusions} concludes.
 
@@ -104,7 +104,7 @@ This paper is organized as follows. Section~\ref{sec:framework} presents the the
 \subsection{Generalized Recursive Digital Filter}
 \label{sec:generalized_filter}
 
-A central contribution of this work is the observation that all 11 recursive digital filter methods implemented in \texttt{pybaseflow} can be expressed as special cases of a single three-parameter equation:
+A central contribution of this work is the observation that all 11 recursive digital filter methods implemented in \texttt{baseflowx} can be expressed as special cases of a single three-parameter equation:
 \begin{equation}
 \label{eq:generalized}
 b_t = \alpha \, b_{t-1} + \beta \left( Q_t + \gamma \, Q_{t-1} \right), \quad \text{subject to} \quad b_t \leq Q_t
@@ -191,7 +191,7 @@ The PART method~\cite{Rutledge1998}, implemented here in Python for the first ti
 \label{eq:part}
 \log_{10}(b_t) = \log_{10}(b_{t_0}) + \frac{t - t_0}{t_1 - t_0} \left[ \log_{10}(b_{t_1}) - \log_{10}(b_{t_0}) \right]
 \end{equation}
-The use of logarithmic interpolation reflects the approximately exponential nature of baseflow recession. The method iterates in three passes, progressively relaxing the recession requirement (from $N$ to $0.5N$ to a single declining day) until the number of anchor points stabilizes. This iterative approach makes PART more robust than single-pass graphical methods, particularly during periods of closely spaced storm events. The original PART program was distributed as a Fortran executable~\cite{Rutledge1998}; the implementation in \texttt{pybaseflow} makes this widely used method accessible within the Python ecosystem for the first time.
+The use of logarithmic interpolation reflects the approximately exponential nature of baseflow recession. The method iterates in three passes, progressively relaxing the recession requirement (from $N$ to $0.5N$ to a single declining day) until the number of anchor points stabilizes. This iterative approach makes PART more robust than single-pass graphical methods, particularly during periods of closely spaced storm events. The original PART program was distributed as a Fortran executable~\cite{Rutledge1998}; the implementation in \texttt{baseflowx} makes this widely used method accessible within the Python ecosystem for the first time.
 
 \subsection{Recession Analysis}
 \label{sec:recession}
@@ -219,7 +219,7 @@ While the digital filter and graphical methods described above rely solely on st
 \label{eq:cmb}
 Q_b(t) = Q(t) \cdot \frac{SC(t) - SC_{RO}}{SC_{BF} - SC_{RO}}
 \end{equation}
-where $SC_{BF}$ and $SC_{RO}$ are the end-member specific conductance values for baseflow and runoff, respectively. Baseflow typically exhibits higher SC due to prolonged contact with aquifer minerals, while runoff SC is lower, reflecting the dilute character of recent precipitation. End-members can be supplied by the user or estimated automatically from the data: \texttt{pybaseflow} estimates $SC_{BF}$ from the upper percentiles of the SC distribution during low-flow periods and $SC_{RO}$ from the lower percentiles during high-flow events.
+where $SC_{BF}$ and $SC_{RO}$ are the end-member specific conductance values for baseflow and runoff, respectively. Baseflow typically exhibits higher SC due to prolonged contact with aquifer minerals, while runoff SC is lower, reflecting the dilute character of recent precipitation. End-members can be supplied by the user or estimated automatically from the data: \texttt{baseflowx} estimates $SC_{BF}$ from the upper percentiles of the SC distribution during low-flow periods and $SC_{RO}$ from the lower percentiles during high-flow events.
 
 The CMB method is particularly valuable as an independent validation source for digital filter results, since it relies on fundamentally different information (hydrochemistry vs.\ hydrograph shape)~\cite{Lott2016}.
 
@@ -234,7 +234,7 @@ A novel feature of the package is the ability to calibrate the Eckhardt filter's
 \subsection{Package Architecture}
 \label{sec:architecture}
 
-The \texttt{pybaseflow} package (version 0.1.1) is organized into five modules:
+The \texttt{baseflowx} package (version 0.1.1) is organized into five modules:
 
 \begin{itemize}[nosep]
 \item \texttt{separation.py} --- All 17 separation method functions plus the shared computational core.
@@ -244,7 +244,7 @@ The \texttt{pybaseflow} package (version 0.1.1) is organized into five modules:
 \item \texttt{utils.py} --- Preprocessing utilities including \texttt{clean\_streamflow()}, \texttt{moving\_average()}, and array helpers.
 \end{itemize}
 
-All public separation functions are importable from the top-level namespace (e.g., \texttt{import pybaseflow; b = pybaseflow.eckhardt(Q, a, BFImax)}) or from their respective submodules. Every separation function accepts a NumPy array \texttt{Q} and returns a NumPy array of the same length containing the estimated baseflow.
+All public separation functions are importable from the top-level namespace (e.g., \texttt{import baseflowx; b = baseflowx.eckhardt(Q, a, BFImax)}) or from their respective submodules. Every separation function accepts a NumPy array \texttt{Q} and returns a NumPy array of the same length containing the estimated baseflow.
 
 \subsection{Unified Filter Core}
 \label{sec:filter_core}
@@ -259,11 +259,11 @@ All filter methods accept an \texttt{initial\_method} parameter for setting $b_0
 The \texttt{fetch\_usgs()} function in the \texttt{io} module retrieves daily streamflow data from the USGS National Water Information System (NWIS) using only the Python standard library (\texttt{urllib}, \texttt{json}). It accepts a site number, start date, and end date, and returns a pandas Series indexed by date:
 
 \begin{lstlisting}
-from pybaseflow.io import fetch_usgs
+from baseflowx.io import fetch_usgs
 Q = fetch_usgs("01013500", start="2019-01-01", end="2020-12-31")
 \end{lstlisting}
 
-The \texttt{clean\_streamflow()} function preprocesses raw data by removing NaN values, filtering years with fewer than 120 valid days, and sorting chronologically. The package also bundles a sample dataset (USGS station 01013500, Fish River near Fort Kent, Maine, 2019--2020) accessible via \texttt{pybaseflow.load\_sample\_data()}, providing a snowmelt-dominated regime with a strong seasonal cycle suitable for demonstrating all methods.
+The \texttt{clean\_streamflow()} function preprocesses raw data by removing NaN values, filtering years with fewer than 120 valid days, and sorting chronologically. The package also bundles a sample dataset (USGS station 01013500, Fish River near Fort Kent, Maine, 2019--2020) accessible via \texttt{baseflowx.load\_sample\_data()}, providing a snowmelt-dominated regime with a strong seasonal cycle suitable for demonstrating all methods.
 
 \subsection{Performance Optimization}
 \label{sec:performance}
@@ -276,10 +276,10 @@ Several computationally intensive functions, particularly the graphical method i
 The package requires Python $\geq$ 3.9 and depends on three core libraries: NumPy~\cite{Harris2020}, pandas~\cite{McKinney2010}, and Numba~\cite{Lam2015}. It is installable via:
 
 \begin{lstlisting}[numbers=none]
-pip install pybaseflow
+pip install baseflowx
 \end{lstlisting}
 
-The source code is hosted at \url{https://github.com/BYU-Hydroinformatics/pybaseflow} under the MIT license. Documentation built with MkDocs is available at \url{https://pybaseflow.readthedocs.io/en/latest/}, including method guides with equations and figures, practical tutorials, and auto-generated API reference.
+The source code is hosted at \url{https://github.com/BYU-Hydroinformatics/baseflowx} under the MIT license. Documentation built with MkDocs is available at \url{https://baseflowx.readthedocs.io/en/latest/}, including method guides with equations and figures, practical tutorials, and auto-generated API reference.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Usage Examples}
@@ -293,18 +293,18 @@ This section demonstrates the package workflow using the bundled Fish River data
 A complete baseflow separation requires only a few lines of code:
 
 \begin{lstlisting}[caption={Basic usage: loading data and applying a separation method.},label={lst:basic}]
-import pybaseflow
+import baseflowx
 import numpy as np
 
 # Load bundled sample data (Fish River, Maine)
-Q, dates = pybaseflow.load_sample_data()
+Q, dates = baseflowx.load_sample_data()
 
 # Estimate recession coefficient
-from pybaseflow.estimate import recession_coefficient
+from baseflowx.estimate import recession_coefficient
 a = recession_coefficient(Q)
 
 # Apply a separation method
-b = pybaseflow.eckhardt(Q, a=a, BFImax=0.80)
+b = baseflowx.eckhardt(Q, a=a, BFImax=0.80)
 
 # Calculate baseflow index
 BFI = np.sum(b) / np.sum(Q)
@@ -324,7 +324,7 @@ Figure~\ref{fig:eckhardt} shows the Eckhardt separation result, with baseflow sh
 Because all methods share a consistent API, comparing them is straightforward:
 
 \begin{lstlisting}[caption={Applying multiple separation methods for comparison.},label={lst:compare}]
-from pybaseflow.separation import (eckhardt, chapman, lh,
+from baseflowx.separation import (eckhardt, chapman, lh,
     fixed, ukih, part)
 
 results = {
@@ -351,7 +351,7 @@ Figure~\ref{fig:overview} presents an overview comparison of all 17 methods appl
 The recession coefficient $a$, required by most digital filter methods, can be estimated directly from the streamflow record:
 
 \begin{lstlisting}[caption={Recession coefficient estimation.},label={lst:recession}]
-from pybaseflow.estimate import recession_coefficient
+from baseflowx.estimate import recession_coefficient
 a = recession_coefficient(Q, strict=True)
 \end{lstlisting}
 
@@ -371,14 +371,14 @@ For the Eckhardt filter, the $\mathrm{BFI_{max}}$ parameter can be set using the
 When specific conductance data are available, the CMB method provides a physically grounded separation:
 
 \begin{lstlisting}[caption={CMB tracer-based separation and Eckhardt calibration.},label={lst:cmb}]
-from pybaseflow.tracer import cmb, calibrate_eckhardt_from_cmb
+from baseflowx.tracer import cmb, calibrate_eckhardt_from_cmb
 
 # CMB separation
 b_cmb = cmb(Q, SC, SC_BF=350, SC_RO=30)
 
 # Use CMB result to calibrate Eckhardt's BFImax
 BFImax_cal = calibrate_eckhardt_from_cmb(Q, b_cmb, a=a)
-b_eck = pybaseflow.eckhardt(Q, a=a, BFImax=BFImax_cal)
+b_eck = baseflowx.eckhardt(Q, a=a, BFImax=BFImax_cal)
 \end{lstlisting}
 
 Figure~\ref{fig:cmb} shows the CMB separation alongside the specific conductance time series and end-member reference lines.
@@ -401,7 +401,7 @@ To illustrate the range of baseflow estimates produced by different methodologic
 Table~\ref{tab:bfi} summarizes the baseflow index (BFI = $\sum b_t / \sum Q_t$) computed by each method using default or recommended parameters. The recession coefficient was estimated as $a = 0.977$ using the \texttt{recession\_coefficient()} function.
 
 \begin{table}[H]
-\caption{Baseflow index (BFI) values for Fish River (USGS 01013500, 2019--2020) computed by each method in \texttt{pybaseflow}.\label{tab:bfi}}
+\caption{Baseflow index (BFI) values for Fish River (USGS 01013500, 2019--2020) computed by each method in \texttt{baseflowx}.\label{tab:bfi}}
 \small
 \begin{tabularx}{\textwidth}{llcc}
 \toprule
@@ -433,7 +433,7 @@ Digital filter (hybrid) & IHACRES & 0.69 & $a = 0.977$, $C = 0.055$, $\alpha_s =
 \end{tabularx}
 \end{table}
 
-Several patterns emerge from this comparison. The BFI values range from 0.63 (Furey--Gupta and 3-pass Lyne--Hollick) to 0.78 (fixed interval), a spread of 0.15 that is consistent with the range reported by Eckhardt~\cite{Eckhardt2008} across multiple catchments. This variation underscores the well-known sensitivity of baseflow estimates to method choice and highlights the value of applying multiple methods, as \texttt{pybaseflow} facilitates.
+Several patterns emerge from this comparison. The BFI values range from 0.63 (Furey--Gupta and 3-pass Lyne--Hollick) to 0.78 (fixed interval), a spread of 0.15 that is consistent with the range reported by Eckhardt~\cite{Eckhardt2008} across multiple catchments. This variation underscores the well-known sensitivity of baseflow estimates to method choice and highlights the value of applying multiple methods, as \texttt{baseflowx} facilitates.
 
 Within the digital filter family, the $\gamma = 0$ methods cluster between 0.63 and 0.72, while the single-pass $\gamma = 1$ Lyne--Hollick filter produces a higher BFI (0.74) because its symmetric moving average preserves more of the hydrograph as baseflow. Additional passes progressively reduce BFI---the 3-pass variant drops to 0.63---consistent with the spectral analysis of Spongberg~\cite{Spongberg2000}.
 
@@ -480,14 +480,14 @@ The algebraic equivalence between the Boughton and Eckhardt filters---related by
 \subsection{Comparison with Existing Tools}
 \label{sec:comparison_tools}
 
-Table~\ref{tab:comparison} compares \texttt{pybaseflow} with existing baseflow separation tools across several dimensions relevant to modern hydrological practice.
+Table~\ref{tab:comparison} compares \texttt{baseflowx} with existing baseflow separation tools across several dimensions relevant to modern hydrological practice.
 
 \begin{table}[H]
-\caption{Comparison of \texttt{pybaseflow} with existing baseflow separation tools.\label{tab:comparison}}
+\caption{Comparison of \texttt{baseflowx} with existing baseflow separation tools.\label{tab:comparison}}
 \small
 \begin{tabularx}{\textwidth}{lcccc}
 \toprule
-\textbf{Feature} & \textbf{pybaseflow} & \textbf{HYSEP/PART} & \textbf{WHAT} & \textbf{baseflow}~\cite{Xie2020} \\
+\textbf{Feature} & \textbf{baseflowx} & \textbf{HYSEP/PART} & \textbf{WHAT} & \textbf{baseflow}~\cite{Xie2020} \\
 \midrule
 Language & Python & Fortran & Web & Python \\
 Methods & 17 & 4 & 3 & 11 \\
@@ -503,7 +503,7 @@ Unified filter framework & Yes & N/A & No & No \\
 
 The USGS programs HYSEP and PART~\cite{Sloto1996,Rutledge1998} remain widely used in regulatory and research contexts, but their Fortran executables cannot be called from Python scripts, Jupyter notebooks, or cloud-based workflows without cumbersome wrappers. The WHAT tool~\cite{Lim2005} offers web accessibility but is limited to three methods and cannot be automated for batch processing. The original \texttt{baseflow} package by Xie et al.~\cite{Xie2020} provided a Python implementation of 11 digital filters but included study-specific geospatial functionality (global freeze/thaw rasters, spatial batch processing) that complicated its use as a general-purpose library, and it lacked graphical, recession-based, and tracer-based methods. R-based alternatives such as the parametric approach of Pelletier and Andrassian~\cite{Pelletier2020} offer single-method implementations but do not provide the breadth of methods needed for cross-method comparison studies.
 
-By contrast, \texttt{pybaseflow} combines the broadest method coverage (17 methods across four paradigms) with a clean, focused API and the unified filter framework described in Section~\ref{sec:generalized_filter}. Its integration into the Python scientific ecosystem---alongside NumPy~\cite{Harris2020}, pandas~\cite{McKinney2010}, and complementary hydrology packages such as Hydrostats~\cite{Roberts2018} and Pastas~\cite{Collenteur2019}---enables seamless incorporation into reproducible analytical workflows.
+By contrast, \texttt{baseflowx} combines the broadest method coverage (17 methods across four paradigms) with a clean, focused API and the unified filter framework described in Section~\ref{sec:generalized_filter}. Its integration into the Python scientific ecosystem---alongside NumPy~\cite{Harris2020}, pandas~\cite{McKinney2010}, and complementary hydrology packages such as Hydrostats~\cite{Roberts2018} and Pastas~\cite{Collenteur2019}---enables seamless incorporation into reproducible analytical workflows.
 
 \subsection{Limitations}
 \label{sec:limitations}
@@ -525,11 +525,11 @@ Several directions for future development are planned. Support for sub-daily tim
 \section{Conclusions}
 \label{sec:conclusions}
 
-We have presented \texttt{pybaseflow}, an open-source Python package that unifies 17 baseflow separation methods under a consistent API. The package spans four methodological paradigms---recursive digital filters, graphical methods, recession analysis, and tracer-based approaches---making it the most comprehensive Python tool available for baseflow separation.
+We have presented \texttt{baseflowx}, an open-source Python package that unifies 17 baseflow separation methods under a consistent API. The package spans four methodological paradigms---recursive digital filters, graphical methods, recession analysis, and tracer-based approaches---making it the most comprehensive Python tool available for baseflow separation.
 
 A key theoretical contribution is the identification of a generalized three-parameter recursive digital filter equation (Equation~\ref{eq:generalized}) that reveals the algebraic relationships among 11 popular methods, including the equivalence of the Boughton and Eckhardt filters and the bridging role of IHACRES between the two filter families. The package also provides the first Python implementation of the USGS PART method and a novel CMB-to-Eckhardt calibration bridge linking tracer measurements to digital filter parameters.
 
-The package is designed for ease of use: it is pip-installable, provides built-in USGS data retrieval, includes bundled sample data, and is accompanied by comprehensive documentation with method guides and worked examples. We hope that \texttt{pybaseflow} will serve as a practical tool for hydrologists, water resource engineers, and researchers, and that its open-source nature will foster community contributions and continued development.
+The package is designed for ease of use: it is pip-installable, provides built-in USGS data retrieval, includes bundled sample data, and is accompanied by comprehensive documentation with method guides and worked examples. We hope that \texttt{baseflowx} will serve as a practical tool for hydrologists, water resource engineers, and researchers, and that its open-source nature will foster community contributions and continued development.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \vspace{6pt}
@@ -545,7 +545,7 @@ The package is designed for ease of use: it is pip-installable, provides built-i
 
 %\informedconsent{}
 
-\dataavailability{The \texttt{pybaseflow} Python package is publicly available at \url{https://github.com/BYU-Hydroinformatics/pybaseflow}. Documentation is available at \url{https://pybaseflow.readthedocs.io/en/latest/}. The bundled sample dataset originates from USGS station 01013500 (Fish River near Fort Kent, Maine).}
+\dataavailability{The \texttt{baseflowx} Python package is publicly available at \url{https://github.com/BYU-Hydroinformatics/baseflowx}. Documentation is available at \url{https://baseflowx.readthedocs.io/en/latest/}. The bundled sample dataset originates from USGS station 01013500 (Fish River near Fort Kent, Maine).}
 
 \conflictsofinterest{The authors declare no conflicts of interest.}
 
